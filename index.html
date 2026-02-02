@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARMAN SU | Premium Water</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { 
+            margin: 0; 
+            overflow-x: hidden; 
+            background-color: #051438; 
+            color: white; 
+            font-family: 'Inter', sans-serif; 
+        }
+
+        /* Фон - Горы */
+        #bg-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            background: url('img/mountains.jpg') no-repeat center center/cover;
+        }
+        
+        /* Затемнение фона */
+        #bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(to bottom, rgba(5, 20, 56, 0.7), rgba(5, 20, 56, 0.95));
+        }
+
+        /* Three.js Canvas (Снег/Частицы) */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Glassmorphism Navigation */
+        nav {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Typography */
+        h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
+        .text-glow { text-shadow: 0 0 30px rgba(34, 211, 238, 0.6); }
+
+        /* Pages System */
+        .page-section {
+            display: none; /* Скрываем все секции по умолчанию */
+            min-height: 100vh;
+            padding-top: 100px;
+            animation: fadeIn 0.8s ease-out;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .page-section.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 3D Bottle Effect */
+        .bottle-container {
+            perspective: 1000px;
+            transform-style: preserve-3d;
+        }
+        .bottle-img {
+            transition: transform 0.1s ease-out;
+            filter: drop-shadow(0 20px 50px rgba(0,0,0,0.5));
+        }
+
+        /* Interactive Product Cards */
+        .product-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            transition: all 0.4s ease;
+        }
+        .product-card:hover {
+            transform: translateY(-10px);
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #22D3EE;
+            box-shadow: 0 0 30px rgba(34, 211, 238, 0.2);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #22D3EE; border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+    <div id="bg-container"></div> <div id="bg-overlay"></div>
+    <div id="canvas-container"></div> <nav class="fixed top-0 w-full z-50 px-6 py-4 flex justify-between items-center transition-all duration-300">
+        <div class="flex items-center gap-3 cursor-pointer" onclick="switchPage('home')">
+            <div class="text-2xl font-black tracking-widest text-white">ARMAN <span class="text-cyan-400">SU</span></div>
+        </div>
+        
+        <div class="hidden md:flex space-x-8">
+            <button onclick="switchPage('home')" class="nav-link text-sm font-bold uppercase tracking-widest hover:text-cyan-400 transition text-cyan-400">Главная</button>
+            <button onclick="switchPage('products')" class="nav-link text-sm font-bold uppercase tracking-widest hover:text-cyan-400 transition text-gray-300">Продукция</button>
+            <button onclick="switchPage('about')" class="nav-link text-sm font-bold uppercase tracking-widest hover:text-cyan-400 transition text-gray-300">Завод</button>
+            <button onclick="switchPage('contacts')" class="nav-link text-sm font-bold uppercase tracking-widest hover:text-cyan-400 transition text-gray-300">Контакты</button>
+        </div>
+
+        <a href="https://wa.me/77479188888" class="hidden md:flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 px-6 py-2 rounded-full font-bold text-sm hover:scale-105 transition shadow-[0_0_20px_rgba(34,211,238,0.4)]">
+            <i class="fab fa-whatsapp"></i> Заказать
+        </a>
+
+        <button class="md:hidden text-2xl" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
+    </nav>
+
+    <div id="mobile-menu" class="fixed inset-0 bg-black/95 z-40 hidden flex-col items-center justify-center space-y-8">
+        <button onclick="switchPage('home'); toggleMobileMenu()" class="text-2xl font-bold">Главная</button>
+        <button onclick="switchPage('products'); toggleMobileMenu()" class="text-2xl font-bold">Продукция</button>
+        <button onclick="switchPage('about'); toggleMobileMenu()" class="text-2xl font-bold">Завод</button>
+        <button onclick="switchPage('contacts'); toggleMobileMenu()" class="text-2xl font-bold">Контакты</button>
+        <button onclick="toggleMobileMenu()" class="absolute top-6 right-6 text-3xl"><i class="fas fa-times"></i></button>
+    </div>
+
+    <main id="home" class="page-section active flex items-center min-h-screen">
+        <div class="max-w-7xl mx-auto px-6 w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            
+            <div class="order-2 lg:order-1 relative z-10">
+                <div class="inline-block px-3 py-1 border border-cyan-500/50 rounded-full text-xs font-mono text-cyan-400 mb-6 bg-blue-900/30 backdrop-blur-md">
+                    ALMATY MOUNTAINS SOURCE
+                </div>
+                <h1 class="text-5xl md:text-7xl font-black leading-tight mb-6">
+                    ЧИСТОТА <br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-white text-glow">ВЕРШИН</span>
+                </h1>
+                <p class="text-lg text-gray-300 mb-8 max-w-lg leading-relaxed">
+                    Вода ARMAN SU рождается в ледниках Алатау и проходит 3 уровня молекулярной очистки. Вкус природы в каждой капле.
+                </p>
+                <div class="flex gap-4">
+                    <button onclick="switchPage('products')" class="px-8 py-4 bg-white text-black font-bold rounded-full hover:bg-cyan-400 hover:text-white transition duration-300">
+                        Каталог
+                    </button>
+                    <a href="https://wa.me/77479188888" class="px-8 py-4 border border-white/30 rounded-full font-bold hover:bg-white/10 transition flex items-center gap-2">
+                        <i class="fab fa-play"></i> О нас
+                    </a>
+                </div>
+                
+                <div class="mt-12 flex gap-8 border-t border-white/10 pt-8">
+                    <div>
+                        <div class="text-3xl font-bold text-cyan-400">pH 5.9</div>
+                        <div class="text-xs text-gray-500 uppercase">Идеальный баланс</div>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-bold text-cyan-400">300м</div>
+                        <div class="text-xs text-gray-500 uppercase">Глубина скважины</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="order-1 lg:order-2 flex justify-center items-center h-[500px] lg:h-[700px] relative bottle-container">
+                <div class="absolute w-[400px] h-[400px] bg-cyan-500/20 rounded-full blur-[100px] animate-pulse"></div>
+                
+                <img src="img/hero-bottle.png" alt="Arman Su Premium" id="hero-img" class="bottle-img relative z-20 h-[80%] object-contain hover:scale-105 transition-transform duration-500">
+                
+                <div class="absolute top-1/4 right-10 bg-black/40 backdrop-blur-md p-4 rounded-xl border border-white/10 animate-bounce" style="animation-duration: 3s;">
+                    <i class="fas fa-snowflake text-cyan-400 text-xl mb-1"></i>
+                    <div class="text-xs font-bold">Ледяная<br>свежесть</div>
+                </div>
+                
+                <div class="absolute bottom-1/4 left-0 bg-black/40 backdrop-blur-md p-4 rounded-xl border border-white/10 animate-bounce" style="animation-duration: 4s;">
+                    <i class="fas fa-shield-alt text-cyan-400 text-xl mb-1"></i>
+                    <div class="text-xs font-bold">ISO 9001<br>Certified</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <main id="products" class="page-section">
+        <div class="max-w-7xl mx-auto px-6 pb-20">
+            <h2 class="text-4xl md:text-5xl font-bold text-center mb-16">Линейка <span class="text-cyan-400">ARMAN SU</span></h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="product-card rounded-3xl p-8 flex flex-col items-center text-center group">
+                    <div class="h-64 w-full flex items-center justify-center mb-6 relative">
+                        <div class="absolute inset-0 bg-cyan-400/10 blur-2xl rounded-full scale-0 group-hover:scale-100 transition-transform duration-500"></div>
+                        <img src="img/05.png" class="h-full object-contain relative z-10 group-hover:scale-110 transition duration-500">
+                    </div>
+                    <h3 class="text-2xl font-bold">0.5 л</h3>
+                    <p class="text-gray-400 text-sm mb-6">Компактный формат для активной жизни.</p>
+                    <a href="https://wa.me/77479188888?text=Заказ%200.5л" class="w-full py-3 border border-cyan-500/50 rounded-xl hover:bg-cyan-500 hover:text-black font-bold transition">Заказать</a>
+                </div>
+
+                <div class="product-card rounded-3xl p-8 flex flex-col items-center text-center group">
+                    <div class="h-64 w-full flex items-center justify-center mb-6 relative">
+                        <div class="absolute inset-0 bg-cyan-400/10 blur-2xl rounded-full scale-0 group-hover:scale-100 transition-transform duration-500"></div>
+                        <img src="img/15.png" class="h-full object-contain relative z-10 group-hover:scale-110 transition duration-500">
+                    </div>
+                    <h3 class="text-2xl font-bold">1.5 л</h3>
+                    <p class="text-gray-400 text-sm mb-6">Оптимальный объем на каждый день.</p>
+                    <a href="https://wa.me/77479188888?text=Заказ%201.5л" class="w-full py-3 border border-cyan-500/50 rounded-xl hover:bg-cyan-500 hover:text-black font-bold transition">Заказать</a>
+                </div>
+
+                <div class="product-card rounded-3xl p-8 flex flex-col items-center text-center group border-cyan-500/40 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-cyan-500 text-black text-xs font-bold px-3 py-1 rounded-bl-xl">HIT</div>
+                    <div class="h-64 w-full flex items-center justify-center mb-6 relative">
+                        <div class="absolute inset-0 bg-cyan-400/10 blur-2xl rounded-full scale-0 group-hover:scale-100 transition-transform duration-500"></div>
+                        <img src="img/5.png" class="h-full object-contain relative z-10 group-hover:scale-110 transition duration-500">
+                    </div>
+                    <h3 class="text-2xl font-bold">5 - 6 л</h3>
+                    <p class="text-gray-400 text-sm mb-6">Семейный формат. Чистота для дома.</p>
+                    <a href="https://wa.me/77479188888?text=Заказ%205л" class="w-full py-3 bg-cyan-600 rounded-xl hover:bg-cyan-500 font-bold transition shadow-lg shadow-cyan-500/20">Заказать</a>
+                </div>
+
+                <div class="product-card rounded-3xl p-8 flex flex-col items-center text-center group">
+                    <div class="h-64 w-full flex items-center justify-center mb-6 relative">
+                        <div class="absolute inset-0 bg-cyan-400/10 blur-2xl rounded-full scale-0 group-hover:scale-100 transition-transform duration-500"></div>
+                        <img src="img/19.png" class="h-full object-contain relative z-10 group-hover:scale-110 transition duration-500">
+                    </div>
+                    <h3 class="text-2xl font-bold">18.9 л</h3>
+                    <p class="text-gray-400 text-sm mb-6">Для диспенсеров. Офис и дом.</p>
+                    <a href="https://wa.me/77479188888?text=Заказ%2019л" class="w-full py-3 border border-cyan-500/50 rounded-xl hover:bg-cyan-500 hover:text-black font-bold transition">Заказать</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <main id="about" class="page-section">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                <div>
+                    <h2 class="text-4xl font-bold mb-6">Завод в предгорьях <br><span class="text-cyan-400">Алатау</span></h2>
+                    <div class="space-y-6 text-gray-300 text-lg leading-relaxed">
+                        <p>
+                            Производство ARMAN SU расположено в экологически чистом районе (пос. Кыргауылды). Мы используем воду из собственной артезианской скважины №6953.
+                        </p>
+                        <p>
+                            Наши партнеры — крупнейшие бренды Казахстана: <b class="text-white">Gas Energy, G-Drive, Arbuz.kz</b>. Это подтверждает высочайший стандарт качества.
+                        </p>
+                    </div>
+
+                    <div class="mt-10 grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div class="p-4 border border-white/10 rounded-xl bg-white/5 text-center">
+                            <i class="fas fa-file-contract text-2xl text-cyan-400 mb-2"></i>
+                            <div class="text-sm font-bold">ISO 9001</div>
+                        </div>
+                        <div class="p-4 border border-white/10 rounded-xl bg-white/5 text-center">
+                            <i class="fas fa-globe text-2xl text-cyan-400 mb-2"></i>
+                            <div class="text-sm font-bold">EAC</div>
+                        </div>
+                        <div class="p-4 border border-white/10 rounded-xl bg-white/5 text-center">
+                            <i class="fas fa-flag text-2xl text-cyan-400 mb-2"></i>
+                            <div class="text-sm font-bold">CT-KZ</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative h-[500px] w-full rounded-3xl overflow-hidden border border-white/20 shadow-2xl group">
+                    <img src="img/factory.jpg" class="absolute inset-0 w-full h-full object-cover transition-transform duration-[3s] group-hover:scale-110">
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#051438] via-transparent to-transparent"></div>
+                    <div class="absolute bottom-8 left-8">
+                        <div class="text-4xl font-black text-white">60,000</div>
+                        <div class="text-cyan-400 uppercase tracking-widest text-sm">Литров в сутки</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <main id="contacts" class="page-section">
+        <div class="max-w-5xl mx-auto px-6 flex flex-col items-center justify-center min-h-[70vh]">
+            <h2 class="text-5xl font-black mb-12 text-center">Свяжитесь с нами</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
+                <a href="https://wa.me/77479188888" class="group bg-white/5 p-8 rounded-3xl border border-white/10 hover:border-cyan-400 transition text-center hover:bg-white/10">
+                    <div class="w-16 h-16 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-3xl mx-auto mb-6 group-hover:scale-110 transition">
+                        <i class="fab fa-whatsapp"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">WhatsApp</h3>
+                    <p class="text-gray-400">+7 747 918 8888</p>
+                </a>
+
+                <div class="bg-white/5 p-8 rounded-3xl border border-white/10 text-center">
+                    <div class="w-16 h-16 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-3xl mx-auto mb-6">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Адрес</h3>
+                    <p class="text-gray-400">Алматинская обл.,<br>с. Кыргауылды</p>
+                </div>
+
+                <a href="mailto:armansu_an@mail.ru" class="group bg-white/5 p-8 rounded-3xl border border-white/10 hover:border-cyan-400 transition text-center hover:bg-white/10">
+                    <div class="w-16 h-16 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-3xl mx-auto mb-6 group-hover:scale-110 transition">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Email</h3>
+                    <p class="text-gray-400">armansu_an@mail.ru</p>
+                </a>
+            </div>
+
+            <div class="mt-16 text-center">
+                <h3 class="text-xl font-bold mb-6 text-gray-400">Документация</h3>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a href="docs/ЕАС 2023г.pdf" target="_blank" class="px-6 py-3 rounded-full border border-white/20 hover:bg-white hover:text-black transition flex items-center gap-2">
+                        <i class="fas fa-download"></i> ЕАС Декларация
+                    </a>
+                    <a href="docs/Сертификат ISO.pdf" target="_blank" class="px-6 py-3 rounded-full border border-white/20 hover:bg-white hover:text-black transition flex items-center gap-2">
+                        <i class="fas fa-download"></i> ISO 9001
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- 1. SIMPLE ROUTER (PAGE SWITCHING) ---
+        function switchPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page-section').forEach(el => {
+                el.classList.remove('active');
+                el.style.display = 'none';
+            });
+            // Show selected
+            const activePage = document.getElementById(pageId);
+            activePage.style.display = 'flex'; // Use flex to center content
+            // Need small timeout for transition class
+            setTimeout(() => activePage.classList.add('active'), 10);
+            
+            // Update Navigation State
+            document.querySelectorAll('.nav-link').forEach(btn => {
+                btn.classList.remove('text-cyan-400');
+                btn.classList.add('text-gray-300');
+            });
+            // Highlight current button (logic simplified for brevity)
+            event.target.classList.add('text-cyan-400');
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+            menu.classList.toggle('flex');
+        }
+
+        // --- 2. THREE.JS SNOW SYSTEM (BACKGROUND) ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true }); // Alpha true = transparent bg
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // Particles
+        const particlesGeo = new THREE.BufferGeometry();
+        const particlesCount = 1500;
+        const posArray = new Float32Array(particlesCount * 3);
+
+        for(let i = 0; i < particlesCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 20; // Spread x,y,z
+        }
+
+        particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const particlesMat = new THREE.PointsMaterial({
+            size: 0.03,
+            color: 0x22D3EE, // Cyan color
+            transparent: true,
+            opacity: 0.6
+        });
+        const particlesMesh = new THREE.Points(particlesGeo, particlesMat);
+        scene.add(particlesMesh);
+
+        camera.position.z = 5;
+
+        // Animation Loop
+        let mouseX = 0;
+        let mouseY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            
+            // --- 3. BOTTLE PARALLAX EFFECT (Pure JS) ---
+            const bottle = document.getElementById('hero-img');
+            if(bottle) {
+                const x = (window.innerWidth - e.pageX) / 40;
+                const y = (window.innerHeight - e.pageY) / 40;
+                bottle.style.transform = `translateX(${x}px) translateY(${y}px) rotateY(${x}deg) rotateX(${y}deg)`;
+            }
+        });
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            const elapsedTime = clock.getElapsedTime();
+            
+            // Rotate particles slowly
+            particlesMesh.rotation.y = elapsedTime * 0.05;
+            particlesMesh.rotation.x = mouseY * 0.0001;
+
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Initialize view
+        switchPage('home');
+    </script>
+</body>
+</html>
